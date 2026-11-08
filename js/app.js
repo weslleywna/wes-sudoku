@@ -4,11 +4,14 @@
   const { PEERS, rowOf, colOf, boxOf, candidates, generate } = window.Sudoku;
 
   const DIFFICULTIES = {
-    easy:   { label: 'Fácil',        hints: 5, desc: '5 dicas' },
-    medium: { label: 'Médio',        hints: 4, desc: '4 dicas' },
-    hard:   { label: 'Difícil',      hints: 3, desc: '3 dicas' },
-    expert: { label: 'Especialista', hints: 2, desc: '2 dicas' },
+    easy:   { label: 'Fácil',        hints: 5, mistakes: 5 },
+    medium: { label: 'Médio',        hints: 4, mistakes: 4 },
+    hard:   { label: 'Difícil',      hints: 3, mistakes: 3 },
+    expert: { label: 'Especialista', hints: 2, mistakes: 2 },
   };
+
+  const describe = (d) => `${d.hints} dicas · ${d.mistakes} erros`;
+  const maxMistakes = () => DIFFICULTIES[game.difficulty].mistakes;
 
   const KEYS = {
     game: 'wes-sudoku:game',
@@ -89,7 +92,7 @@
       btn.className = 'difficulty-option';
       btn.dataset.difficulty = key;
       const best = (storage.get(KEYS.best) || {})[key];
-      btn.innerHTML = `<span>${d.label}</span><small>${d.desc}${best ? ` · recorde ${formatTime(best)}` : ''}</small>`;
+      btn.innerHTML = `<span>${d.label}</span><small>${describe(d)}${best ? ` · recorde ${formatTime(best)}` : ''}</small>`;
       btn.addEventListener('click', () => {
         $('dlg-new').close();
         newGame(key);
@@ -113,6 +116,7 @@
       mistakes: 0,
       elapsed: 0,
       finished: false,
+      lost: false,
     };
     history = [];
     notesMode = false;
@@ -134,6 +138,7 @@
       mistakes: 0,
       elapsed: 0,
       finished: false,
+      lost: false,
     });
     history = [];
     paused = false;
@@ -147,7 +152,7 @@
     const saved = storage.get(KEYS.game);
     if (saved && Array.isArray(saved.puzzle) && saved.puzzle.length === 81 && DIFFICULTIES[saved.difficulty]) {
       game = saved;
-      if (game.finished) boardEl.classList.add('solved');
+      if (game.finished && !game.lost) boardEl.classList.add('solved');
       return true;
     }
     return false;
@@ -212,11 +217,15 @@
       game.values[i] = n;
       game.notes[i] = 0;
       clearNoteFromPeers(i, n);
-      if (settings.checkErrors && n !== game.solution[i]) {
+      animateCell(i, 'pop');
+      if (n !== game.solution[i]) {
         game.mistakes++;
         bump($('status-mistakes'));
+        if (game.mistakes >= maxMistakes()) {
+          lose();
+          return;
+        }
       }
-      animateCell(i, 'pop');
     }
     afterMove();
   }
@@ -292,6 +301,23 @@
     render();
   }
 
+  function lose() {
+    game.finished = true;
+    game.lost = true;
+    selected = -1;
+    history = [];
+    save();
+    render();
+    showLostDialog(500);
+  }
+
+  function showLostDialog(delay = 0) {
+    const max = maxMistakes();
+    $('lost-subtitle').textContent =
+      `Você errou ${max} ${max === 1 ? 'vez' : 'vezes'}, o limite do nível ${DIFFICULTIES[game.difficulty].label}.`;
+    setTimeout(() => { if (!$('dlg-lost').open) $('dlg-lost').showModal(); }, delay);
+  }
+
   function finish() {
     game.finished = true;
     selected = -1;
@@ -316,7 +342,7 @@
       ['Tempo', formatTime(game.elapsed)],
       ['Recorde', formatTime(best[game.difficulty]) || '—'],
       ['Dicas usadas', game.hintsUsed],
-      ['Erros', settings.checkErrors ? game.mistakes : '—'],
+      ['Erros', `${game.mistakes}/${maxMistakes()}`],
     ];
     $('win-stats').innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
     setTimeout(() => $('dlg-win').showModal(), 700);
@@ -394,7 +420,9 @@
 
     // Status
     $('status-difficulty').textContent = DIFFICULTIES[game.difficulty].label;
-    $('status-mistakes').textContent = settings.checkErrors ? game.mistakes : '—';
+    $('status-mistakes').textContent = `${game.mistakes}/${maxMistakes()}`;
+    $('status-mistakes').parentElement.classList.toggle('danger', game.mistakes > 0 && game.mistakes >= maxMistakes() - 1);
+    $('lost-overlay').hidden = !game.lost;
     $('status-timer').textContent = formatTime(game.elapsed);
     $('btn-pause').classList.toggle('paused', paused);
     $('btn-pause').disabled = game.finished;
@@ -523,6 +551,15 @@
       restartGame();
       toast('Jogo recomeçado');
     });
+    $('btn-lost-new').addEventListener('click', () => {
+      $('dlg-lost').close();
+      openNewDialog();
+    });
+    $('btn-lost-retry').addEventListener('click', () => {
+      $('dlg-lost').close();
+      restartGame();
+    });
+    $('btn-overlay-new').addEventListener('click', openNewDialog);
     $('btn-win-new').addEventListener('click', () => {
       $('dlg-win').close();
       openNewDialog();
@@ -541,6 +578,10 @@
 
     // Fecha o diálogo ao clicar no fundo.
     document.querySelectorAll('dialog').forEach((dlg) => {
+      if (dlg.id === 'dlg-lost') {
+        dlg.addEventListener('cancel', (e) => e.preventDefault()); // precisa escolher uma opção
+        return;
+      }
       dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
     });
 
@@ -554,7 +595,7 @@
       const key = btn.dataset.difficulty;
       const d = DIFFICULTIES[key];
       btn.classList.toggle('current', game && game.difficulty === key);
-      btn.querySelector('small').textContent = d.desc + (best[key] ? ` · recorde ${formatTime(best[key])}` : '');
+      btn.querySelector('small').textContent = describe(d) + (best[key] ? ` · recorde ${formatTime(best[key])}` : '');
     });
     $('btn-restart').hidden = !game;
     $('dlg-new').showModal();
@@ -567,4 +608,5 @@
   bindEvents();
   if (!loadGame()) newGame('medium');
   render();
+  if (game.lost) showLostDialog();
 })();

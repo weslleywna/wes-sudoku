@@ -431,7 +431,8 @@ kbd {
 .modal-actions .btn { flex: 1 1 auto; }
 
 .win-emoji { font-size: 2.6rem; line-height: 1; margin-bottom: 8px; }
-#dlg-win { text-align: center; }
+#dlg-win, #dlg-lost { text-align: center; }
+.status-item.danger { color: var(--error); }
 
 .stats {
   display: grid; grid-template-columns: 1fr 1fr;

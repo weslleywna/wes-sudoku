@@ -44,7 +44,7 @@
       <section class="board-area">
         <div class="status">
           <span class="chip" id="status-difficulty">Médio</span>
-          <span class="status-item" title="Erros">
+          <span class="status-item mistakes" title="Erros / limite">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
             <span id="status-mistakes">0</span>
           </span>
@@ -57,6 +57,10 @@
 
         <div class="board-wrap">
           <div class="board" id="board" role="grid" aria-label="Tabuleiro de Sudoku"></div>
+          <div class="board-overlay" id="lost-overlay" hidden>
+            <p>Fim de jogo</p>
+            <button class="btn primary" id="btn-overlay-new" type="button">Novo jogo</button>
+          </div>
           <div class="board-overlay" id="paused-overlay" hidden>
             <p>Jogo pausado</p>
             <button class="btn primary" id="btn-resume" type="button">Continuar</button>
@@ -95,7 +99,7 @@
         <label class="switch">
           <input type="checkbox" id="opt-check">
           <span class="switch-track" aria-hidden="true"></span>
-          <span class="switch-label">Mostrar erros e contar</span>
+          <span class="switch-label">Destacar números errados</span>
         </label>
 
         <p class="shortcuts">
@@ -134,6 +138,19 @@
       <div class="modal-actions">
         <button class="btn ghost" value="close">Ver tabuleiro</button>
         <button class="btn primary" id="btn-win-new" type="button">Novo jogo</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Fim de jogo -->
+  <dialog class="modal" id="dlg-lost">
+    <form method="dialog">
+      <div class="win-emoji" aria-hidden="true">😵</div>
+      <h2>Fim de jogo</h2>
+      <p class="muted" id="lost-subtitle">Você atingiu o limite de erros.</p>
+      <div class="modal-actions">
+        <button class="btn" id="btn-lost-retry" type="button">Tentar de novo</button>
+        <button class="btn primary" id="btn-lost-new" type="button">Novo jogo</button>
       </div>
     </form>
   </dialog>
