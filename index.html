@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Wes Sudoku</title>
+  <meta name="description" content="Sudoku gratuito no navegador, com anotações, dicas, níveis de dificuldade e tema claro e escuro.">
+  <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#14161c" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f6bed'/%3E%3Cpath d='M11 3v26M21 3v26M3 11h26M3 21h26' stroke='%23fff' stroke-opacity='.45' stroke-width='1.5'/%3E%3Ctext x='16' y='21.5' font-family='system-ui,sans-serif' font-size='15' font-weight='700' fill='%23fff' text-anchor='middle'%3E9%3C/text%3E%3C/svg%3E">
+  <script>
+    // Aplica o tema antes de pintar a página (evita "piscar" ao carregar).
+    (function () {
+      var theme;
+      try { theme = JSON.parse(localStorage.getItem('wes-sudoku:theme')); } catch (e) {}
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1 class="brand">
+        <span class="brand-mark" aria-hidden="true">9</span>
+        Wes Sudoku
+      </h1>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="btn-new" type="button" title="Novo jogo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Novo jogo</span>
+        </button>
+        <button class="icon-btn icon-only" id="btn-theme" type="button" title="Alternar tema" aria-label="Alternar tema claro/escuro">
+          <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="game">
+      <section class="board-area">
+        <div class="status">
+          <span class="chip" id="status-difficulty">Médio</span>
+          <span class="status-item" title="Erros">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <span id="status-mistakes">0</span>
+          </span>
+          <button class="status-item timer" id="btn-pause" type="button" title="Pausar / continuar">
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z"/></svg>
+            <span id="status-timer">00:00</span>
+          </button>
+        </div>
+
+        <div class="board-wrap">
+          <div class="board" id="board" role="grid" aria-label="Tabuleiro de Sudoku"></div>
+          <div class="board-overlay" id="paused-overlay" hidden>
+            <p>Jogo pausado</p>
+            <button class="btn primary" id="btn-resume" type="button">Continuar</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Controles">
+        <div class="tools">
+          <button class="tool" id="btn-undo" type="button" title="Desfazer (Ctrl+Z)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+            <span>Desfazer</span>
+          </button>
+          <button class="tool" id="btn-erase" type="button" title="Apagar (Backspace)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 20H8.5L3.7 15.2a1.5 1.5 0 0 1 0-2.1L13.1 3.7a1.5 1.5 0 0 1 2.1 0l5.1 5.1a1.5 1.5 0 0 1 0 2.1L11 20"/><path d="m8.5 8.5 7 7"/></svg>
+            <span>Apagar</span>
+          </button>
+          <button class="tool" id="btn-notes" type="button" title="Modo anotação (N)" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+            <span>Anotar</span>
+            <em class="badge-state" id="notes-state">Off</em>
+          </button>
+          <button class="tool" id="btn-hint" type="button" title="Dica (H)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>
+            <span>Dica</span>
+            <em class="badge" id="hint-count">3</em>
+          </button>
+          <button class="tool" id="btn-autonotes" type="button" title="Preencher todas as anotações possíveis">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8h.01M12 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/></svg>
+            <span>Auto-notas</span>
+          </button>
+        </div>
+
+        <div class="numpad" id="numpad"></div>
+
+        <label class="switch">
+          <input type="checkbox" id="opt-check">
+          <span class="switch-track" aria-hidden="true"></span>
+          <span class="switch-label">Mostrar erros e contar</span>
+        </label>
+
+        <p class="shortcuts">
+          Atalhos: <kbd>1</kbd>–<kbd>9</kbd> número · <kbd>N</kbd> anotar ·
+          <kbd>Shift</kbd>+número anota direto · <kbd>H</kbd> dica ·
+          <kbd>⌫</kbd> apagar · <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfazer · setas para mover
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Feito com JavaScript puro · seu progresso fica salvo neste navegador
+    </footer>
+  </div>
+
+  <!-- Novo jogo -->
+  <dialog class="modal" id="dlg-new">
+    <form method="dialog">
+      <h2>Novo jogo</h2>
+      <p class="muted">Escolha a dificuldade</p>
+      <div class="difficulty-list" id="difficulty-list"></div>
+      <div class="modal-actions">
+        <button class="btn" id="btn-restart" type="button">Recomeçar este jogo</button>
+        <button class="btn ghost" value="cancel">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Vitória -->
+  <dialog class="modal" id="dlg-win">
+    <form method="dialog">
+      <div class="win-emoji" aria-hidden="true">🎉</div>
+      <h2>Parabéns!</h2>
+      <p class="muted" id="win-subtitle">Você resolveu o sudoku.</p>
+      <dl class="stats" id="win-stats"></dl>
+      <div class="modal-actions">
+        <button class="btn ghost" value="close">Ver tabuleiro</button>
+        <button class="btn primary" id="btn-win-new" type="button">Novo jogo</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/sudoku.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
