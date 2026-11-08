@@ -120,6 +120,11 @@
     <form method="dialog">
       <h2>Novo jogo</h2>
       <p class="muted">Escolha a dificuldade</p>
+      <label class="switch lives-switch">
+        <input type="checkbox" id="opt-lives">
+        <span class="switch-track" aria-hidden="true"></span>
+        <span class="switch-label">Jogar com vidas <small>(o jogo acaba ao atingir o limite de erros)</small></span>
+      </label>
       <div class="difficulty-list" id="difficulty-list"></div>
       <div class="modal-actions">
         <button class="btn" id="btn-restart" type="button">Recomeçar este jogo</button>

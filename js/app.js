@@ -10,8 +10,10 @@
     expert: { label: 'Especialista', hints: 2, mistakes: 2 },
   };
 
-  const describe = (d) => `${d.hints} dicas · ${d.mistakes} erros`;
+  const describe = (d) => `${d.hints} dicas · ${settings.lives ? `${d.mistakes} vidas` : 'erros ilimitados'}`;
   const maxMistakes = () => DIFFICULTIES[game.difficulty].mistakes;
+  const hasLives = () => game.lives !== false; // jogos salvos antes da opção tinham vidas
+  const mistakesText = () => (hasLives() ? `${game.mistakes}/${maxMistakes()}` : String(game.mistakes));
 
   const KEYS = {
     game: 'wes-sudoku:game',
@@ -31,7 +33,7 @@
   let notesMode = false;
   let paused = false;
   let history = [];
-  const settings = Object.assign({ checkErrors: true }, storage.get(KEYS.settings));
+  const settings = Object.assign({ checkErrors: true, lives: true }, storage.get(KEYS.settings));
 
   // ---------- Elementos ----------
   const $ = (id) => document.getElementById(id);
@@ -91,8 +93,7 @@
       btn.type = 'button';
       btn.className = 'difficulty-option';
       btn.dataset.difficulty = key;
-      const best = (storage.get(KEYS.best) || {})[key];
-      btn.innerHTML = `<span>${d.label}</span><small>${describe(d)}${best ? ` · recorde ${formatTime(best)}` : ''}</small>`;
+      btn.innerHTML = `<span>${d.label}</span><small></small>`;
       btn.addEventListener('click', () => {
         $('dlg-new').close();
         newGame(key);
@@ -117,6 +118,7 @@
       elapsed: 0,
       finished: false,
       lost: false,
+      lives: settings.lives,
     };
     history = [];
     notesMode = false;
@@ -130,6 +132,7 @@
   function restartGame() {
     if (!game) return;
     Object.assign(game, {
+      lives: settings.lives,
       values: game.puzzle.slice(),
       notes: new Array(81).fill(0),
       hinted: new Array(81).fill(0),
@@ -221,7 +224,7 @@
       if (n !== game.solution[i]) {
         game.mistakes++;
         bump($('status-mistakes'));
-        if (game.mistakes >= maxMistakes()) {
+        if (hasLives() && game.mistakes >= maxMistakes()) {
           lose();
           return;
         }
@@ -342,7 +345,7 @@
       ['Tempo', formatTime(game.elapsed)],
       ['Recorde', formatTime(best[game.difficulty]) || '—'],
       ['Dicas usadas', game.hintsUsed],
-      ['Erros', `${game.mistakes}/${maxMistakes()}`],
+      ['Erros', mistakesText()],
     ];
     $('win-stats').innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
     setTimeout(() => $('dlg-win').showModal(), 700);
@@ -420,8 +423,10 @@
 
     // Status
     $('status-difficulty').textContent = DIFFICULTIES[game.difficulty].label;
-    $('status-mistakes').textContent = `${game.mistakes}/${maxMistakes()}`;
-    $('status-mistakes').parentElement.classList.toggle('danger', game.mistakes > 0 && game.mistakes >= maxMistakes() - 1);
+    $('status-mistakes').textContent = mistakesText();
+    $('status-mistakes').parentElement.title = hasLives() ? 'Erros / limite' : 'Erros (sem limite)';
+    $('status-mistakes').parentElement.classList.toggle('danger',
+      hasLives() && game.mistakes > 0 && game.mistakes >= maxMistakes() - 1);
     $('lost-overlay').hidden = !game.lost;
     $('status-timer').textContent = formatTime(game.elapsed);
     $('btn-pause').classList.toggle('paused', paused);
@@ -565,6 +570,12 @@
       openNewDialog();
     });
 
+    $('opt-lives').addEventListener('change', (e) => {
+      settings.lives = e.target.checked;
+      storage.set(KEYS.settings, settings);
+      refreshDifficultyList();
+    });
+
     $('opt-check').addEventListener('change', (e) => {
       settings.checkErrors = e.target.checked;
       storage.set(KEYS.settings, settings);
@@ -589,7 +600,14 @@
   }
 
   function openNewDialog() {
-    // Atualiza recordes e destaca a dificuldade atual.
+    $('opt-lives').checked = settings.lives;
+    refreshDifficultyList();
+    $('btn-restart').hidden = !game;
+    $('dlg-new').showModal();
+  }
+
+  // Atualiza descrições, recordes e destaca a dificuldade atual.
+  function refreshDifficultyList() {
     const best = storage.get(KEYS.best) || {};
     document.querySelectorAll('.difficulty-option').forEach((btn) => {
       const key = btn.dataset.difficulty;
@@ -597,8 +615,6 @@
       btn.classList.toggle('current', game && game.difficulty === key);
       btn.querySelector('small').textContent = describe(d) + (best[key] ? ` · recorde ${formatTime(best[key])}` : '');
     });
-    $('btn-restart').hidden = !game;
-    $('dlg-new').showModal();
   }
 
   // ---------- Início ----------

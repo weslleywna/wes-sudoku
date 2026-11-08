@@ -8,7 +8,7 @@ Sudoku em HTML, CSS e JavaScript puro: é uma página estática, sem build e sem
 - **Anotações**: no modo anotação você marca os números possíveis em cada casa. Ao colocar um número, ele some das anotações da mesma linha, coluna e bloco.
 - **Auto-notas**: preenche todas as casas vazias com os números possíveis.
 - **Dicas**: revelam a casa selecionada ou, se nenhuma estiver selecionada, a casa mais fácil do tabuleiro. A quantidade depende da dificuldade (5 / 4 / 3 / 2).
-- **Limite de erros**: 5 no Fácil, 4 no Médio, 3 no Difícil e 2 no Especialista. Ao atingir o limite o jogo acaba e é preciso começar de novo (outro jogo ou o mesmo do zero).
+- **Vidas (opcional)**: ao iniciar um jogo você escolhe se quer jogar com limite de erros — 5 no Fácil, 4 no Médio, 3 no Difícil e 2 no Especialista. Ao atingir o limite o jogo acaba e é preciso começar de novo (outro jogo ou o mesmo do zero). Sem vidas, os erros são só contados.
 - **Tema claro e escuro**: segue o sistema por padrão e lembra a sua escolha.
 - **Erros**: números repetidos ficam em vermelho. Com a opção "Destacar números errados" ligada, todo número errado também fica destacado.
 - Desfazer, cronômetro com pausa, recorde por dificuldade (só conta jogo sem dicas) e progresso salvo no navegador.
