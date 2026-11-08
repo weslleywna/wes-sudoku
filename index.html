@@ -19,7 +19,7 @@
       document.documentElement.dataset.theme = theme;
     })();
   </script>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
   <div class="app">
@@ -123,7 +123,7 @@
       <label class="switch lives-switch">
         <input type="checkbox" id="opt-lives">
         <span class="switch-track" aria-hidden="true"></span>
-        <span class="switch-label">Jogar com vidas <small>(o jogo acaba ao atingir o limite de erros)</small></span>
+        <span class="switch-label">Jogar com vidas <small id="lives-hint"></small></span>
       </label>
       <div class="difficulty-list" id="difficulty-list"></div>
       <div class="modal-actions">
@@ -162,7 +162,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/sudoku.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/sudoku.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>

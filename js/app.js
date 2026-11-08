@@ -573,6 +573,13 @@
     $('opt-lives').addEventListener('change', (e) => {
       settings.lives = e.target.checked;
       storage.set(KEYS.settings, settings);
+      // Vale também para a partida em andamento (salvo se ligar as vidas
+      // num jogo que já passou do limite: aí só vale para o próximo).
+      if (game && !game.finished && (!settings.lives || game.mistakes < maxMistakes())) {
+        game.lives = settings.lives;
+        save();
+        render();
+      }
       refreshDifficultyList();
     });
 
@@ -608,6 +615,10 @@
 
   // Atualiza descrições, recordes e destaca a dificuldade atual.
   function refreshDifficultyList() {
+    const appliesNow = game && !game.finished && game.lives === settings.lives;
+    $('lives-hint').textContent = settings.lives
+      ? `O jogo acaba ao atingir o limite de erros${appliesNow ? ', inclusive nesta partida' : ' (a partir do próximo jogo)'}.`
+      : `Erros só são contados, sem fim de jogo${appliesNow ? ', inclusive nesta partida' : ''}.`;
     const best = storage.get(KEYS.best) || {};
     document.querySelectorAll('.difficulty-option').forEach((btn) => {
       const key = btn.dataset.difficulty;
